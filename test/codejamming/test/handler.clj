@@ -13,12 +13,21 @@
 (defn parse-page [p]
   (html/html-snippet (:body (get-page p))))
 
+(defn search-in [page args]
+  (first (:content (first (filter (or (args :with) (fn [_] true))
+                                  (html/select (parse-page "/") (args :for)))))))
+
 (deftest root-test
   (status-is (get-page "/") 200)
+  (testing "head"
+    (is (search-in "/" {:for [:head :link]
+                        :with #(-> (re-find #"bootstrap"
+                                            (:href (:attrs %))))}))
+    (is (= (search-in "/" {:for [:head :title]})
+           "Rock Your Code Out")))
   (testing "navbar"
-    (is (= (:role (:attrs (first (html/select (parse-page "/")
-                                              [:nav.navbar.navbar-default.navbar-static-top]))))
-           "navigation"))))
+    (is (= (search-in "/" {:for [:body :a.navbar-brand]})
+           "Code Jamming"))))
 
 (deftest invalid-test
   (status-is (get-page "/invalid") 404))
